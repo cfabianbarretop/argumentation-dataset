@@ -100,15 +100,14 @@ dfs_indices = {}
 
 def get_subgrafos(df):
     df_comparacion = df[
-        (df["seg"] == df["n_nodes"]) &
-        (df["n_comp"] != 1)
+        (df["n_comp"] != 1) &
+        (df["n_isolates"] == 0)
     ]
     conteo = df_comparacion.groupby("n_comp").size()
     return conteo.to_dict()
 
 def get_graph_conexo(df):
     df_comparacion = df[
-        (df["seg"] == df["n_nodes"]) &
         (df["n_comp"] == 1)
     ]
     return df_comparacion
@@ -123,7 +122,7 @@ nodes_roots = "n_roots"
 for index, (key, df) in enumerate(dfs.items()):
     dfs_indices[index] = key
     total_text_arg  = len(df)
-    isolados = ((df["seg"] != df["n_nodes"])).sum()
+    isolados = ((df["n_isolates"] != 0)).sum()
     subgrafos = get_subgrafos(df=df)
     df_conexo = get_graph_conexo(df)
     conexo = df_conexo.shape[0]

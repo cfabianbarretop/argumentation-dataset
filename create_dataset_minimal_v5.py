@@ -127,15 +127,21 @@ def get_data_graph(dfc_component, dfr_relation):
     return df_merged
 
 # Creação do grafo
-def crear_grafo(df_sub):  
+def crear_grafo(df_nodes, df_sub):  
     # Crear grafo dirigido
     G = nx.DiGraph()
-    
+
+    # 1. Agregar todos los nodos
+    for _, row in df_nodes.iterrows():
+        G.add_node(
+            row["component_id"],
+            component=row["minimalist_labels"]
+        )
+
+    # 2. Agregar las relaciones
     for _, row in df_sub.iterrows():
         # G.add_edge(row["source_id"], row["target_id"], label=row["minimalist_labels"])
         G.add_edge(row["target_id"], row["source_id"], label=row["minimalist_labels"])
-        G.nodes[row["source_id"]]["component"] = row["minimal_label_component_source"]
-        G.nodes[row["target_id"]]["component"] = row["minimal_label_component_target"]
 
     n_comp = nx.number_weakly_connected_components(G)
     n_isolates = nx.number_of_isolates(G)
@@ -221,7 +227,7 @@ for index, row in tqdm(conteo.iterrows(), total=len(conteo)):
         df_nodes = get_nodes(component_id)
         df_edges = get_edges(component_id)
         df_graph = get_data_graph(df_nodes, df_edges)
-        graph, n_nodes, n_edges, n_compt, n_isolates = crear_grafo(df_graph)
+        graph, n_nodes, n_edges, n_compt, n_isolates = crear_grafo(df_nodes, df_graph)
         dfc_name_dataset_summary.at[idx, info] = df_graph
         dfc_name_dataset_summary.at[idx, g] = graph
         dfc_name_dataset_summary.at[idx, n_node] = n_nodes
