@@ -152,5 +152,5 @@ for index, (key, df) in enumerate(dfs.items()):
 
 df_resultados = pd.json_normalize(dfs_sumary)
 df_resultados = df_resultados.rename(index=dfs_indices)
-# df_resultados.to_pickle(result_path + name_dataframe_summary)
+df_resultados.to_pickle(result_path + name_dataframe_summary)
 print(tabulate(df_resultados, headers='keys', tablefmt='rounded_outline', showindex=True))
