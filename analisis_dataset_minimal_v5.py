@@ -5,9 +5,10 @@ import pandas as pd
 from tabulate import tabulate
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 result_path = "./results/minimal_v5/"
-name_dataframe_summary = "dataframe_summary.pkl"
+name_dataframe_summary = "dataframe_summary"
 
 # Desenhar o grafo
 def plot_grafo(text_id, G):
@@ -50,7 +51,6 @@ def plot_grafo(text_id, G):
     edge_labels = nx.get_edge_attributes(G, "label")
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, font_color="darkgreen")
     
-    from matplotlib.lines import Line2D
     leyenda = [
         Line2D([0], [0], color="green", linewidth=2, label="support"),
         Line2D([0], [0], color="red",   linewidth=2, label="attack"),
@@ -98,59 +98,45 @@ nos_raiz = {}
 dfs_sumary = []
 dfs_indices = {}
 
-def get_subgrafos(df):
-    df_comparacion = df[
-        (df["n_comp"] != 1) &
-        (df["n_isolates"] == 0)
-    ]
-    conteo = df_comparacion.groupby("n_comp").size()
-    return conteo.to_dict()
-
-def get_graph_conexo(df):
-    df_comparacion = df[
-        (df["n_comp"] == 1)
-    ]
-    return df_comparacion
-
 # Caracteristicas do grafo
-acyclic = "acyclic"
-cycles = "cycles"
-is_tree = "tree"
-is_arborescence = "arborescence"
-nodes_roots = "n_roots"
+comp = "n_comp"
+nodes_roots = "n_root"
+acyclic = "is_acyclic"
+connected = "is_connected"
+is_tree = "is_tree"
+is_arborescence = "is_arborescence"
+is_floresta = "is_forest"
+
 
 for index, (key, df) in enumerate(dfs.items()):
     dfs_indices[index] = key
     total_text_arg  = len(df)
     isolados = ((df["n_isolates"] != 0)).sum()
-    subgrafos = get_subgrafos(df=df)
-    df_conexo = get_graph_conexo(df)
-    conexo = df_conexo.shape[0]
-    # Aciclico e ciclos
-    df_conexo[acyclic] = df_conexo["graph"].apply(lambda graph: nx.is_directed_acyclic_graph(graph))
-    df_conexo[cycles] = df_conexo["graph"].apply(lambda graph: list(nx.simple_cycles(graph)))
-    # Arbol
-    df_conexo[is_tree] = df_conexo["graph"].apply(lambda graph: nx.is_tree(graph))
-    df_conexo[is_arborescence] = df_conexo["graph"].apply(lambda graph: nx.is_arborescence(graph))
-    #Numero de nodos raiz
-    df_conexo[nodes_roots] = df_conexo["graph"].apply(lambda G: sum(1 for _, grado in G.in_degree() if grado == 0))
+    subgrafos = df[comp].value_counts().sort_index().to_dict()
+    nos_raiz = df[nodes_roots].value_counts().sort_index().to_dict()
+    aciclico = df[acyclic].value_counts().sort_index().to_dict()
+    conexo = df[connected].value_counts().sort_index().to_dict()
+    arvore = df[is_tree].value_counts().sort_index().to_dict()
+    arborecente = df[is_arborescence].value_counts().sort_index().to_dict()
+    floresta = df[is_floresta].value_counts().sort_index().to_dict()
     
-    aciclico = df_conexo[df_conexo[acyclic].apply(lambda x: x == True)].shape[0]
-    arvore = df_conexo[df_conexo[is_tree].apply(lambda x: x == True)].shape[0]
-    nos_raiz = df_conexo[nodes_roots].value_counts().sort_index().to_dict()
     dfs_sumary.append({
         "total_text_arg":total_text_arg,
-         "isolados":isolados,
-         "subgrafos": ", ".join(f"{k}: {v}" for k, v in subgrafos.items()),
-         "conexo":conexo,
-         "aciclico":aciclico,
-         "nos_raiz": ", ".join(f"{k}: {v}" for k, v in nos_raiz.items()),
-         "arvore":arvore,
+        "no_isolados":isolados,        
+        "no_componet": ", ".join(f"{v}: {k}" for k, v in subgrafos.items()),
+        "nos_raiz": ", ".join(f"{v}: {k}" for k, v in nos_raiz.items()),
+        "aciclico": ", ".join(f"{v}: {k}" for k, v in aciclico.items()),
+        "conexo": ", ".join(f"{v}: {k}" for k, v in conexo.items()),
+        "arvore": ", ".join(f"{v}: {k}" for k, v in arvore.items()),
+        "arborecente": ", ".join(f"{v}: {k}" for k, v in arborecente.items()),
+        "floresta": ", ".join(f"{v}: {k}" for k, v in floresta.items()),
         }
     )
 
 
 df_resultados = pd.json_normalize(dfs_sumary)
 df_resultados = df_resultados.rename(index=dfs_indices)
-df_resultados.to_pickle(result_path + name_dataframe_summary)
-print(tabulate(df_resultados, headers='keys', tablefmt='rounded_outline', showindex=True))
+df_resultados.to_pickle(result_path + name_dataframe_summary + ".pkl")
+df_resultados.to_csv(result_path + name_dataframe_summary + ".csv", index=True)
+# print(tabulate(df_resultados, headers='keys', tablefmt='rounded_outline', showindex=True))
+# print(df_resultados)

@@ -5,6 +5,7 @@ import pandas as pd
 from tabulate import tabulate
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from tqdm import tqdm
 
 result_path = "./results/minimal_v5/"
@@ -127,27 +128,32 @@ def get_data_graph(dfc_component, dfr_relation):
     return df_merged
 
 # Creação do grafo
-def crear_grafo(df_nodes, df_sub):  
+def crear_grafo(df_nodes, df_graph):  
     # Crear grafo dirigido
     G = nx.DiGraph()
-
+    
     # 1. Agregar todos los nodos
     for _, row in df_nodes.iterrows():
         G.add_node(
             row["component_id"],
             component=row["minimalist_labels"]
         )
-
     # 2. Agregar las relaciones
-    for _, row in df_sub.iterrows():
-        # G.add_edge(row["source_id"], row["target_id"], label=row["minimalist_labels"])
+    for _, row in df_graph.iterrows():
         G.add_edge(row["target_id"], row["source_id"], label=row["minimalist_labels"])
 
-    n_comp = nx.number_weakly_connected_components(G)
-    n_isolates = nx.number_of_isolates(G)
     n_nodes = G.number_of_nodes()
     n_edges = G.number_of_edges()
-    return G, n_nodes, n_edges, n_comp, n_isolates
+    n_isolates = nx.number_of_isolates(G)
+    n_comp = nx.number_weakly_connected_components(G)
+    n_root = len([n for n, d in G.in_degree() if d == 0])
+    is_directed_acyclic_graph = nx.is_directed_acyclic_graph(G)
+    is_connected = nx.is_weakly_connected(G)
+    is_tree = nx.is_tree(G)
+    is_arborescence = nx.is_arborescence(G)
+    is_forest = nx.is_forest(G)
+    
+    return G, n_nodes, n_edges, n_isolates, n_comp, n_root, is_directed_acyclic_graph, is_connected, is_tree, is_arborescence, is_forest
 
 # Disenho do grafo
 def plot_grafo(text_id, G):
@@ -190,7 +196,6 @@ def plot_grafo(text_id, G):
     edge_labels = nx.get_edge_attributes(G, "label")
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, font_color="darkgreen")
     
-    from matplotlib.lines import Line2D
     leyenda = [
         Line2D([0], [0], color="green", linewidth=2, label="support"),
         Line2D([0], [0], color="red",   linewidth=2, label="attack"),
@@ -212,27 +217,44 @@ for index, row in tqdm(conteo.iterrows(), total=len(conteo)):
     g = "graph"
     n_node = "n_nodes"
     n_edge = "n_edges"
-    n_comp = "n_comp"
     n_isol = "n_isolates"
+    n_comp = "n_comp"
+    n_root = "n_root"
+    is_acyclic = "is_acyclic"
+    is_connected = "is_connected"
+    is_tree = "is_tree"
+    is_arborescence = "is_arborescence"
+    is_forest = "is_forest"
 
     dfc_name_dataset_summary[info] = None
     dfc_name_dataset_summary[g] = None
     dfc_name_dataset_summary[n_node] = None
     dfc_name_dataset_summary[n_edge] = None
-    dfc_name_dataset_summary[n_comp] = None
     dfc_name_dataset_summary[n_isol] = None
-
+    dfc_name_dataset_summary[n_comp] = None
+    dfc_name_dataset_summary[n_root] = None
+    dfc_name_dataset_summary[is_acyclic] = None
+    dfc_name_dataset_summary[is_connected] = None
+    dfc_name_dataset_summary[is_tree] = None
+    dfc_name_dataset_summary[is_arborescence] = None
+    dfc_name_dataset_summary[is_forest] = None
 
     for idx, component_id in dfc_name_dataset_summary[columna].items():
         df_nodes = get_nodes(component_id)
         df_edges = get_edges(component_id)
         df_graph = get_data_graph(df_nodes, df_edges)
-        graph, n_nodes, n_edges, n_compt, n_isolates = crear_grafo(df_nodes, df_graph)
+        graph, n_nodes, n_edges, n_isolates, n_compts, n_rootes, acyclic, connected, tree, arborescence, forest = crear_grafo(df_nodes, df_graph)
         dfc_name_dataset_summary.at[idx, info] = df_graph
         dfc_name_dataset_summary.at[idx, g] = graph
         dfc_name_dataset_summary.at[idx, n_node] = n_nodes
         dfc_name_dataset_summary.at[idx, n_edge] = n_edges
-        dfc_name_dataset_summary.at[idx, n_comp] = n_compt
         dfc_name_dataset_summary.at[idx, n_isol] = n_isolates
+        dfc_name_dataset_summary.at[idx, n_comp] = n_compts
+        dfc_name_dataset_summary.at[idx, n_root] = n_rootes
+        dfc_name_dataset_summary.at[idx, is_acyclic] = acyclic
+        dfc_name_dataset_summary.at[idx, is_connected] = connected
+        dfc_name_dataset_summary.at[idx, is_tree] = tree
+        dfc_name_dataset_summary.at[idx, is_arborescence] = arborescence
+        dfc_name_dataset_summary.at[idx, is_forest] = forest
     dfc_name_dataset_summary.to_pickle(result_path + name_graph)
 
