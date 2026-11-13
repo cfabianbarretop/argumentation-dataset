@@ -7,7 +7,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
-result_path = "./results/minimal_v5/"
+result_path = "./../results/minimal_v5/"
 name_dataframe_summary = "dataframe_summary"
 
 # Desenhar o grafo

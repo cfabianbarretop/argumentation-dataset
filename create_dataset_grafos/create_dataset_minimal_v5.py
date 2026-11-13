@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from tqdm import tqdm
 
-result_path = "./results/minimal_v5/"
-path_minimal = "./dataset_minimal/"
+result_path = "./../results/minimal_v5/"
+path_minimal = "./../dataset_minimal/"
 
 columna = "text_id"
 name_graph_minimal = "_Minimal_Grafo.pkl"
