@@ -63,15 +63,23 @@ def plot_grafo(text_id, G):
     plt.show()
 
 # Cargar el DataFrame
-df_cdcp = pd.read_pickle(result_path + "CDCP_Minimal_Grafo.pkl")
-df_aaec = pd.read_pickle(result_path + "AAEC_Minimal_Grafo.pkl")
-df_argpt = pd.read_pickle(result_path + "ArGPT_Minimal_Grafo.pkl")
-df_mtc = pd.read_pickle(result_path + "MTC_Minimal_Grafo.pkl")
-df_aasd = pd.read_pickle(result_path + "AASD_Minimal_Grafo.pkl")
+# df_cdcp = pd.read_pickle(result_path + "CDCP_Minimal_Grafo.pkl")
+# df_aaec = pd.read_pickle(result_path + "AAEC_Minimal_Grafo.pkl")
+# df_argpt = pd.read_pickle(result_path + "ArGPT_Minimal_Grafo.pkl")
+# df_mtc = pd.read_pickle(result_path + "MTC_Minimal_Grafo.pkl")
+# df_aasd = pd.read_pickle(result_path + "AASD_Minimal_Grafo.pkl")
 
-df_AbstRCT_glaucoma = pd.read_pickle(result_path + "AbstRCT_glaucoma_Minimal_Grafo.pkl")
-df_AbstRCT_mixed = pd.read_pickle(result_path + "AbstRCT_mixed_Minimal_Grafo.pkl")
-df_AbstRCT_neoplasm = pd.read_pickle(result_path + "AbstRCT_neoplasm_Minimal_Grafo.pkl")
+# df_AbstRCT_glaucoma = pd.read_pickle(result_path + "AbstRCT_glaucoma_Minimal_Grafo.pkl")
+# df_AbstRCT_mixed = pd.read_pickle(result_path + "AbstRCT_mixed_Minimal_Grafo.pkl")
+# df_AbstRCT_neoplasm = pd.read_pickle(result_path + "AbstRCT_neoplasm_Minimal_Grafo.pkl")
+df_cdcp = pd.read_pickle(result_path + "CDCP_Minimal_Grafo_3class.pkl")
+df_aaec = pd.read_pickle(result_path + "AAEC_Minimal_Grafo_3class.pkl")
+df_argpt = pd.read_pickle(result_path + "ArGPT_Minimal_Grafo_3class.pkl")
+df_mtc = pd.read_pickle(result_path + "MTC_Minimal_Grafo_3class.pkl")
+df_aasd = pd.read_pickle(result_path + "AASD_Minimal_Grafo_3class.pkl")
+df_AbstRCT_glaucoma = pd.read_pickle(result_path + "AbstRCT_glaucoma_Minimal_Grafo_3class.pkl")
+df_AbstRCT_mixed = pd.read_pickle(result_path + "AbstRCT_mixed_Minimal_Grafo_3class.pkl")
+df_AbstRCT_neoplasm = pd.read_pickle(result_path + "AbstRCT_neoplasm_Minimal_Grafo_3class.pkl")
 
 # lista de Dataframes
 dfs = {
@@ -136,7 +144,7 @@ for index, (key, df) in enumerate(dfs.items()):
 
 df_resultados = pd.json_normalize(dfs_sumary)
 df_resultados = df_resultados.rename(index=dfs_indices)
-df_resultados.to_pickle(result_path + name_dataframe_summary + ".pkl")
-df_resultados.to_csv(result_path + name_dataframe_summary + ".csv", index=True)
+df_resultados.to_pickle(result_path + name_dataframe_summary + "_3class.pkl")
+df_resultados.to_csv(result_path + name_dataframe_summary + "_3class.csv", index=True)
 # print(tabulate(df_resultados, headers='keys', tablefmt='rounded_outline', showindex=True))
 # print(df_resultados)
