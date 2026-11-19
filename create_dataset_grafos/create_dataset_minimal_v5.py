@@ -12,7 +12,8 @@ result_path = "./../results/minimal_v5/"
 path_minimal = "./../dataset_minimal/"
 
 columna = "text_id"
-name_graph_minimal = "_Minimal_Grafo.pkl"
+# name_graph_minimal = "_Minimal_Grafo.pkl"
+name_graph_minimal = "_Minimal_Grafo_3class.pkl"
 
 # Cargar 0 CSV
 # Componente
@@ -20,9 +21,14 @@ dfv_train = pd.read_csv(path_minimal + "component_train.csv")
 dfv_test = pd.read_csv(path_minimal + "component_test.csv")
 dfv_value = pd.read_csv(path_minimal + "component_val.csv")
 # Relações
-dfr_train = pd.read_csv(path_minimal + "relation_train.csv")
-dfr_test = pd.read_csv(path_minimal + "relation_test.csv")
-dfr_val = pd.read_csv(path_minimal + "relation_val.csv")
+# dfr_train = pd.read_csv(path_minimal + "relation_train.csv")
+# dfr_test = pd.read_csv(path_minimal + "relation_test.csv")
+# dfr_val = pd.read_csv(path_minimal + "relation_val.csv")
+
+# Relações - 3class
+dfr_train = pd.read_csv(path_minimal + "relation3_train.csv")
+dfr_test = pd.read_csv(path_minimal + "relation3_test.csv")
+dfr_val = pd.read_csv(path_minimal + "relation3_val.csv")
 
 # Misturamos todo
 dfc = pd.concat(
@@ -140,7 +146,8 @@ def crear_grafo(df_nodes, df_graph):
         )
     # 2. Agregar las relaciones
     for _, row in df_graph.iterrows():
-        G.add_edge(row["target_id"], row["source_id"], label=row["minimalist_labels"])
+        if row["minimalist_labels"] != "none":
+            G.add_edge(row["target_id"], row["source_id"], label=row["minimalist_labels"])
 
     n_nodes = G.number_of_nodes()
     n_edges = G.number_of_edges()

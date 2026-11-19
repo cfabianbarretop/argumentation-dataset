@@ -1,0 +1,258 @@
+# Primer paso: crear los dataset se base a datos .csv de:
+# (CDCP, AAEC, ArGPT, MTC, AASD)
+
+import pandas as pd
+from tabulate import tabulate
+import networkx as nx
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from tqdm import tqdm
+
+result_path = "./../results/minimal_v5/"
+path_pred = "./../data_predictions/"
+
+columna = "text_id"
+# name_graph_minimal = "_Minimal_Grafo_pred.pkl"
+name_graph_minimal = "_Minimal_Grafo_clingo.pkl"
+
+# Cargar 0 CSV
+# Componente
+dfv_test = pd.read_csv(path_pred + "component_test_MTC.csv")
+
+# Predictions - 3class
+dfr_test = pd.read_csv(path_pred + "results_clingo_MTC.csv")
+
+# Misturamos todo
+dfc = dfv_test
+dfr = dfr_test
+
+# Faz um conteo de registros de cada dataset
+conteo = (
+    dfc[columna]
+    .drop_duplicates()
+    .str.rsplit("_", n=1).str[0]
+    .value_counts()
+    .reset_index()
+)
+
+conteo.columns = ["valor", "cantidad"]
+
+conteo["porcentaje"] = (
+    conteo["cantidad"] / len(dfc[columna].drop_duplicates()) * 100
+).round(2)
+
+print(tabulate(conteo.reset_index(), headers='keys', tablefmt='rounded_outline', showindex=False))
+total = conteo["cantidad"].sum()
+print("Total:", total)
+
+def get_dfc_dataset_sumary(indice_tableta_dataset):
+    name_dataset = conteo["valor"][indice_tableta_dataset]
+
+    # Só ids dos componentes
+    dfc_name_dataset = dfc[dfc[columna].str.contains(name_dataset, na=False)].copy()
+    dfc_name_dataset_summary = (
+        dfc_name_dataset.groupby(columna)
+        .size()
+        .reset_index(name="seg")
+    )
+    return dfc_name_dataset_summary
+
+# Obtener o nó por text_id
+def get_nodes(text_id):
+    dfc_filter = dfc[dfc[columna].str.contains(text_id, na=False)].copy()
+    return dfc_filter
+# Obtener as relações por text_id
+def get_edges(text_id):
+    dfr_filter = dfr[dfr[columna] == text_id]
+    dfr_filter = dfr_filter.dropna()
+    return dfr_filter
+
+# Obter dados para crear um grafo de prediciones
+def get_data_graph_pred(dfc_component, dfr_relation):
+
+    dfc_component = dfc_component.rename(columns={
+        "label": "labels_component",
+        "minimalist_labels": "minimalist_labels_component"
+    })
+
+    dfr_relation = dfr_relation.rename(columns={
+        "true_label": "labels_relation",
+    })
+    
+    dfr_relation = dfr_relation.merge(
+        dfc_component[['component_id', 'labels_component', 'minimalist_labels_component']],
+        left_on='source_id',
+        right_on='component_id',
+        how='left'
+    )
+
+    dfr_relation = dfr_relation.rename(columns={
+        "labels_component": "label_component_source",
+        "minimalist_labels_component": "minimal_label_component_source",
+
+    })
+
+    dfr_relation = dfr_relation.merge(
+        dfc_component[['component_id', 'labels_component', 'minimalist_labels_component']],
+        left_on='target_id',
+        right_on='component_id',
+        how='left'
+    )
+
+    dfr_relation = dfr_relation.rename(columns={
+        "labels_component": "label_component_target",
+        "minimalist_labels_component": "minimal_label_component_target",
+
+    })
+
+    # Seleccionar solo las columnas que necesitas
+    df_merged = dfr_relation[[
+        # "predicted_label",
+        "clingo_label",
+        "labels_relation",
+        "source_id",
+        "label_component_source",
+        "minimal_label_component_source",
+        "target_id",
+        "label_component_target",
+        "minimal_label_component_target"
+    ]]
+
+    print(df_merged.head(10))
+
+    return df_merged
+
+# Creação do grafo
+def crear_grafo(df_nodes, df_graph):  
+    # Crear grafo dirigido
+    G = nx.DiGraph()
+    
+    # 1. Agregar todos los nodos
+    for _, row in df_nodes.iterrows():
+        G.add_node(
+            row["component_id"],
+            component=row["minimalist_labels"]
+        )
+    # 2. Agregar las relaciones
+    for _, row in df_graph.iterrows():
+        # if row["predicted_label"] != "none":
+        if row["clingo_label"] != "none": 
+            # G.add_edge(row["target_id"], row["source_id"], label=row["predicted_label"])
+            G.add_edge(row["target_id"], row["source_id"], label=row["clingo_label"])
+
+    n_nodes = G.number_of_nodes()
+    n_edges = G.number_of_edges()
+    n_isolates = nx.number_of_isolates(G)
+    n_comp = nx.number_weakly_connected_components(G)
+    n_root = len([n for n, d in G.in_degree() if d == 0])
+    is_directed_acyclic_graph = nx.is_directed_acyclic_graph(G)
+    is_connected = nx.is_weakly_connected(G)
+    is_tree = nx.is_tree(G)
+    is_arborescence = nx.is_arborescence(G)
+    is_forest = nx.is_forest(G)
+    
+    return G, n_nodes, n_edges, n_isolates, n_comp, n_root, is_directed_acyclic_graph, is_connected, is_tree, is_arborescence, is_forest
+
+# Disenho do grafo
+def plot_grafo(text_id, G):
+    # Cor por nó
+    color_nodo = {
+        "MajorClaim" : "#e74c3c",   # Vermelho
+        "Claim"      : "#3498db",   # Azul
+        "Premise"    : "#2ecc71",   # Verde
+    }
+    node_colors = [
+        color_nodo.get(G.nodes[n].get("component", ""), "#95a5a6")
+        for n in G.nodes()
+    ]
+
+    colores_label = {
+        "support" : "#27ae60",   # Verde oscuro
+        "attack"  : "#c0392b",   # Vermelho oscuro
+    }
+    edge_colors   = [colores_label.get(d["label"], "gray") for _, _, d in G.edges(data=True)]
+    
+    plt.figure(figsize=(14, 10))
+    pos = nx.spring_layout(G, seed=42, k=30, iterations=100)
+    
+    # Etiquetas de nodos con ID + tipo de componente
+    node_labels = {
+        n: f"{n}\n{G.nodes[n].get('component', '')}"
+        for n in G.nodes()
+    }
+
+    nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=2000)
+    nx.draw_networkx_labels(G, pos, labels=node_labels, font_color="black", font_size=8, font_weight="bold")
+    nx.draw_networkx_edges(
+        G, pos,
+        edge_color=edge_colors,
+        arrows=True, arrowsize=25, arrowstyle="-|>",
+        width=2, connectionstyle="arc3,rad=0.1",
+        min_source_margin=30, min_target_margin=30,
+    )
+    
+    edge_labels = nx.get_edge_attributes(G, "label")
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, font_color="darkgreen")
+    
+    leyenda = [
+        Line2D([0], [0], color="green", linewidth=2, label="support"),
+        Line2D([0], [0], color="red",   linewidth=2, label="attack"),
+        Line2D([0], [0], color="gray",  linewidth=2, label="otros"),
+    ]
+    plt.legend(handles=leyenda, loc="upper left", fontsize=9)
+    plt.title(f"Grafo argumentativo: {text_id}", fontsize=14)
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+# ------------------------------------------------------------------
+# Processo
+# ------------------------------------------------------------------
+for index, row in tqdm(conteo.iterrows(), total=len(conteo)):
+    name_graph = row['valor'] + name_graph_minimal
+    dfc_name_dataset_summary = get_dfc_dataset_sumary(indice_tableta_dataset=index)
+    info = "info"
+    g = "graph"
+    n_node = "n_nodes"
+    n_edge = "n_edges"
+    n_isol = "n_isolates"
+    n_comp = "n_comp"
+    n_root = "n_root"
+    is_acyclic = "is_acyclic"
+    is_connected = "is_connected"
+    is_tree = "is_tree"
+    is_arborescence = "is_arborescence"
+    is_forest = "is_forest"
+
+    dfc_name_dataset_summary[info] = None
+    dfc_name_dataset_summary[g] = None
+    dfc_name_dataset_summary[n_node] = None
+    dfc_name_dataset_summary[n_edge] = None
+    dfc_name_dataset_summary[n_isol] = None
+    dfc_name_dataset_summary[n_comp] = None
+    dfc_name_dataset_summary[n_root] = None
+    dfc_name_dataset_summary[is_acyclic] = None
+    dfc_name_dataset_summary[is_connected] = None
+    dfc_name_dataset_summary[is_tree] = None
+    dfc_name_dataset_summary[is_arborescence] = None
+    dfc_name_dataset_summary[is_forest] = None
+
+    for idx, component_id in dfc_name_dataset_summary[columna].items():
+        df_nodes = get_nodes(component_id)
+        df_edges = get_edges(component_id)
+        df_graph = get_data_graph_pred(df_nodes, df_edges)
+        graph, n_nodes, n_edges, n_isolates, n_compts, n_rootes, acyclic, connected, tree, arborescence, forest = crear_grafo(df_nodes, df_graph)
+        dfc_name_dataset_summary.at[idx, info] = df_graph
+        dfc_name_dataset_summary.at[idx, g] = graph
+        dfc_name_dataset_summary.at[idx, n_node] = n_nodes
+        dfc_name_dataset_summary.at[idx, n_edge] = n_edges
+        dfc_name_dataset_summary.at[idx, n_isol] = n_isolates
+        dfc_name_dataset_summary.at[idx, n_comp] = n_compts
+        dfc_name_dataset_summary.at[idx, n_root] = n_rootes
+        dfc_name_dataset_summary.at[idx, is_acyclic] = acyclic
+        dfc_name_dataset_summary.at[idx, is_connected] = connected
+        dfc_name_dataset_summary.at[idx, is_tree] = tree
+        dfc_name_dataset_summary.at[idx, is_arborescence] = arborescence
+        dfc_name_dataset_summary.at[idx, is_forest] = forest
+    dfc_name_dataset_summary.to_pickle(result_path + name_graph)
+
