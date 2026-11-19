@@ -1,97 +1,36 @@
-# Segundo paso: anális os dataset baseado em.csv de:
-# (CDCP, AAEC, ArGPT, MTC, AASS)
+# =====================================================================
+#  Title:           Analize of dataframe .pkl created to each dataset
+#  Description:     Is a secod step, it create a summary dataframe
+#  Version:         V6
+#  Author:          cbarreto
+# =====================================================================
 
 import pandas as pd
-from tabulate import tabulate
-import networkx as nx
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
+from tqdm import tqdm
 
-result_path = "./../results/minimal_v5/"
+result_path = "./../results/minimal_v6/"
 name_dataframe_summary = "dataframe_summary"
 
-# Desenhar o grafo
-def plot_grafo(text_id, G):
-    # Cor por nó
-    color_nodo = {
-        "MajorClaim" : "#e74c3c",   # Vermelho
-        "Claim"      : "#3498db",   # Azul
-        "Premise"    : "#2ecc71",   # Verde
-    }
-    node_colors = [
-        color_nodo.get(G.nodes[n].get("component", ""), "#95a5a6")
-        for n in G.nodes()
-    ]
-
-    colores_label = {
-        "support" : "#27ae60",   # Verde oscuro
-        "attack"  : "#c0392b",   # Vermelho oscuro
-    }
-    edge_colors   = [colores_label.get(d["label"], "gray") for _, _, d in G.edges(data=True)]
-    
-    plt.figure(figsize=(14, 10))
-    pos = nx.spring_layout(G, seed=42, k=30, iterations=100)
-    
-    # Etiquetas de nodos con ID + tipo de componente
-    node_labels = {
-        n: f"{n}\n{G.nodes[n].get('component', '')}"
-        for n in G.nodes()
-    }
-
-    nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=2000)
-    nx.draw_networkx_labels(G, pos, labels=node_labels, font_color="black", font_size=8, font_weight="bold")
-    nx.draw_networkx_edges(
-        G, pos,
-        edge_color=edge_colors,
-        arrows=True, arrowsize=25, arrowstyle="-|>",
-        width=2, connectionstyle="arc3,rad=0.1",
-        min_source_margin=30, min_target_margin=30,
-    )
-    
-    edge_labels = nx.get_edge_attributes(G, "label")
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, font_color="darkgreen")
-    
-    leyenda = [
-        Line2D([0], [0], color="green", linewidth=2, label="support"),
-        Line2D([0], [0], color="red",   linewidth=2, label="attack"),
-        Line2D([0], [0], color="gray",  linewidth=2, label="otros"),
-    ]
-    plt.legend(handles=leyenda, loc="upper left", fontsize=9)
-    plt.title(f"Grafo argumentativo: {text_id}", fontsize=14)
-    plt.axis("off")
-    plt.tight_layout()
-    plt.show()
-
 # Cargar el DataFrame
-# df_cdcp = pd.read_pickle(result_path + "CDCP_Minimal_Grafo.pkl")
-# df_aaec = pd.read_pickle(result_path + "AAEC_Minimal_Grafo.pkl")
-# df_argpt = pd.read_pickle(result_path + "ArGPT_Minimal_Grafo.pkl")
-# df_mtc = pd.read_pickle(result_path + "MTC_Minimal_Grafo.pkl")
-# df_aasd = pd.read_pickle(result_path + "AASD_Minimal_Grafo.pkl")
-
-# df_AbstRCT_glaucoma = pd.read_pickle(result_path + "AbstRCT_glaucoma_Minimal_Grafo.pkl")
-# df_AbstRCT_mixed = pd.read_pickle(result_path + "AbstRCT_mixed_Minimal_Grafo.pkl")
-# df_AbstRCT_neoplasm = pd.read_pickle(result_path + "AbstRCT_neoplasm_Minimal_Grafo.pkl")
-df_cdcp = pd.read_pickle(result_path + "CDCP_Minimal_Grafo_3class.pkl")
-df_aaec = pd.read_pickle(result_path + "AAEC_Minimal_Grafo_3class.pkl")
-df_argpt = pd.read_pickle(result_path + "ArGPT_Minimal_Grafo_3class.pkl")
-df_mtc = pd.read_pickle(result_path + "MTC_Minimal_Grafo_3class.pkl")
-df_aasd = pd.read_pickle(result_path + "AASD_Minimal_Grafo_3class.pkl")
-df_AbstRCT_glaucoma = pd.read_pickle(result_path + "AbstRCT_glaucoma_Minimal_Grafo_3class.pkl")
-df_AbstRCT_mixed = pd.read_pickle(result_path + "AbstRCT_mixed_Minimal_Grafo_3class.pkl")
-df_AbstRCT_neoplasm = pd.read_pickle(result_path + "AbstRCT_neoplasm_Minimal_Grafo_3class.pkl")
-
-# lista de Dataframes
-dfs = {
-    "CDCP":df_cdcp,
-    "AAEC":df_aaec,
-    "ArGPT":df_argpt,
-    "MTC":df_mtc,
-    "AASD":df_aasd,
-    "Glaucoma":df_AbstRCT_glaucoma,
-    "Mixed":df_AbstRCT_mixed,
-    "Neoplasm":df_AbstRCT_neoplasm,
+datasets = {
+    "CDCP":     "CDCP_Minimal_Grafo.pkl",
+    "AAEC":     "AAEC_Minimal_Grafo.pkl",
+    "ArGPT":    "ArGPT_Minimal_Grafo.pkl",
+    "MTC":      "MTC_Minimal_Grafo.pkl",
+    "AASD":     "AASD_Minimal_Grafo.pkl",
+    "Glaucoma": "AbstRCT_glaucoma_Minimal_Grafo.pkl",
+    "Mixed":    "AbstRCT_mixed_Minimal_Grafo.pkl",
+    "Neoplasm": "AbstRCT_neoplasm_Minimal_Grafo.pkl",
+    "ACSP":     "ACSP_Minimal_Grafo.pkl",
+    "AMP":      "AMP_Minimal_Grafo.pkl",
+    "USD":      "USD_Minimal_Grafo.pkl",
 }
+
+# Lista de Dataframes
+dfs = {}
+for name, file in datasets.items():
+    df = pd.read_pickle(result_path + file)
+    dfs[name] = df
 
 # --------------------------------------------------------------------------------
 # Processo
@@ -116,7 +55,7 @@ is_arborescence = "is_arborescence"
 is_floresta = "is_forest"
 
 
-for index, (key, df) in enumerate(dfs.items()):
+for index, (key, df) in tqdm(enumerate(dfs.items()), total=len(dfs)):
     dfs_indices[index] = key
     total_text_arg  = len(df)
     isolados = ((df["n_isolates"] != 0)).sum()
@@ -144,7 +83,5 @@ for index, (key, df) in enumerate(dfs.items()):
 
 df_resultados = pd.json_normalize(dfs_sumary)
 df_resultados = df_resultados.rename(index=dfs_indices)
-df_resultados.to_pickle(result_path + name_dataframe_summary + "_3class.pkl")
-df_resultados.to_csv(result_path + name_dataframe_summary + "_3class.csv", index=True)
-# print(tabulate(df_resultados, headers='keys', tablefmt='rounded_outline', showindex=True))
-# print(df_resultados)
+df_resultados.to_pickle(result_path + name_dataframe_summary + ".pkl")
+df_resultados.to_csv(result_path + name_dataframe_summary + ".csv", index=True)
